@@ -117,7 +117,7 @@ class Config:
     
     # model name or the model's local path
     model_name = bert_models[6]
-    model_save_name = model_name + '_fine-tuning.pt'
+    model_save_name = model_name.replace('/', '-') + '_fine-tuning.pt'
     output_dir = './output' 
     log_path = os.path.join(output_dir, model_name.replace('/', '-') + "_fine-tuning.log")
     dataset_path = r'C:\Artoria\Code\Text_Classification\NLP_Corpus_ZH\datasets\online_shopping_10_cats\online_shopping_10_cats.csv'
@@ -168,6 +168,7 @@ def getLogger(log_path: str = 'traininglog.log') -> logging.Logger:
     logger.addHandler(sh)
     return logger
 
+
 def load_data(path: str) -> tuple[pd.DataFrame, pd.DataFrame, dict[str:int], dict[int:str]]:
     """
     data preprocess
@@ -178,23 +179,19 @@ def load_data(path: str) -> tuple[pd.DataFrame, pd.DataFrame, dict[str:int], dic
     df = pd.read_csv(Config.dataset_path)
     cla2id = {}
     id2cla = {}
-    for i, cat in enumerate(df['cat'].unique()):
+    for i, cat in enumerate(df['y'].unique()):
         cla2id[cat] = i
         id2cla[i] = cat
 
     data_train, data_test = train_test_split(df, test_size=0.2, random_state=42)
     ## data preprocessing
     # type here
-    data_train['cat'] = data_train['cat'].apply(lambda x: cla2id[x])
-    data_test['cat'] = data_test['cat'].apply(lambda x: cla2id[x])
+    data_train['y'] = data_train['y'].apply(lambda x: cla2id[x])
+    data_test['y'] = data_test['y'].apply(lambda x: cla2id[x])
     
-    data_train = data_train[['review', 'cat']]
-    data_test = data_test[['review']]
+    data_train = data_train[['text', 'y']]
+    data_test = data_test[['text']]
     
-    data_train.columns = ['text', 'y']
-    data_test.columns = ['text']
-
-
     return data_train, data_test, cla2id, id2cla
 
 class TextDataset(Dataset):
@@ -410,8 +407,8 @@ def train(cla2id: dict | None = None, id2cla: dict | None = None) -> pd.DataFram
         })
 
     # save model and tokenizer parameters
-    model_to_save = model.module if hasattr(model, 'module') else model
-    model_to_save.save_pretrained(Config.output_dir)
+    # model_to_save = model.module if hasattr(model, 'module') else model
+    # model_to_save.save_pretrained(Config.output_dir)
     # tokenizer.save_pretrained(Config.output_dir)
 
     df_stats = pd.DataFrame(data = train_stats)
